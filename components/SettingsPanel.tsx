@@ -33,6 +33,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [newTheme, setNewTheme] = useState('');
   const [newDept, setNewDept] = useState('');
   const [newTeamName, setNewTeamName] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +101,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleRemoveTeam = (teamId: string) => {
     setTeams(teams.filter(t => t.id !== teamId));
+  };
+
+  const handleAddMemberToTeam = (teamId: string) => {
+    if (newMemberName.trim() && newMemberEmail.trim()) {
+      const newMember: User = {
+        id: `user-${Date.now()}`,
+        name: newMemberName.trim(),
+        role: UserRole.OPERATOR,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newMemberName.trim())}`
+      };
+      setTeams(teams.map(team => {
+        if (team.id === teamId) {
+          return { ...team, members: [...team.members, newMember] };
+        }
+        return team;
+      }));
+      setNewMemberName('');
+      setNewMemberEmail('');
+    }
+  };
+
+  const handleRemoveMemberFromTeam = (teamId: string, memberId: string) => {
+    setTeams(teams.map(team => {
+      if (team.id === teamId) {
+        return { ...team, members: team.members.filter(m => m.id !== memberId) };
+      }
+      return team;
+    }));
   };
 
   const toggleSetting = (key: keyof AppSettings) => {
@@ -259,11 +290,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
             )}
 
-            {/* TAB: TEAMS (Read Only for MVP) */}
+            {/* TAB: TEAMS */}
             {activeTab === 'TEAMS' && (
               <div className="space-y-6">
                  <h2 className="text-xl font-bold text-gray-800">Gestion des Équipes</h2>
-                 <p className="text-sm text-gray-500">Configuration des équipes postées et zones de responsabilité.</p>
+                 <p className="text-sm text-gray-500">Créez des équipes et ajoutez des membres avec nom et email.</p>
                  
                  {/* Add new team */}
                  <div className="flex gap-2">
@@ -284,18 +315,59 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                  
                  <div className="space-y-4">
                     {teams.map(team => (
-                      <div key={team.id} className="p-4 border border-gray-200 rounded-xl flex justify-between items-center">
-                         <div>
+                      <div key={team.id} className="p-4 border border-gray-200 rounded-xl">
+                         <div className="flex justify-between items-center mb-3">
                             <h3 className="font-bold text-lg">{team.name}</h3>
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{team.members.length} membres</span>
+                            <button 
+                              onClick={() => handleRemoveTeam(team.id)}
+                              className="text-gray-400 hover:text-red-500 p-1"
+                              title="Supprimer l'équipe"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                          </div>
-                         <button 
-                           onClick={() => handleRemoveTeam(team.id)}
-                           className="text-gray-400 hover:text-red-500 p-2"
-                           title="Supprimer l'équipe"
-                         >
-                           <Trash2 size={20} />
-                         </button>
+                         
+                         {/* Members list */}
+                         <div className="mb-3">
+                           <p className="text-sm text-gray-500 mb-2">{team.members.length} membre(s)</p>
+                           <div className="flex flex-wrap gap-2">
+                             {team.members.map(member => (
+                               <div key={member.id} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-sm">
+                                 <span>{member.name}</span>
+                                 <button 
+                                   onClick={() => handleRemoveMemberFromTeam(team.id, member.id)}
+                                   className="text-gray-400 hover:text-red-500"
+                                 >
+                                   <Trash2 size={14} />
+                                 </button>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                         
+                         {/* Add member form */}
+                         <div className="flex gap-2 mt-2">
+                           <input 
+                             type="text"
+                             value={selectedTeamId === team.id ? newMemberName : ''}
+                             onChange={(e) => { setNewMemberName(e.target.value); setSelectedTeamId(team.id); }}
+                             placeholder="Nom du membre"
+                             className="flex-1 p-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                           />
+                           <input 
+                             type="email"
+                             value={selectedTeamId === team.id ? newMemberEmail : ''}
+                             onChange={(e) => { setNewMemberEmail(e.target.value); setSelectedTeamId(team.id); }}
+                             placeholder="Email"
+                             className="flex-1 p-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                           />
+                           <button 
+                             onClick={() => handleAddMemberToTeam(team.id)}
+                             className="bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 text-sm"
+                           >
+                             <Plus size={16} />
+                           </button>
+                         </div>
                       </div>
                     ))}
                     {teams.length === 0 && (
