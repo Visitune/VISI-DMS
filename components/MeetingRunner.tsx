@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Meeting, MeetingSection, User, ActionItem, ActionStatus, AppSettings } from '../types';
-import { USERS } from '../constants';
-import { Play, Pause, Square, AlertTriangle, Mic, CheckCircle2, User as UserIcon, Plus, ChevronRight, Camera, X, Eraser } from 'lucide-react';
+import { USERS, ZONES } from '../constants';
+import { Play, Pause, Square, AlertTriangle, Mic, CheckCircle2, User as UserIcon, Plus, ChevronRight, Camera, X, Eraser, Edit } from 'lucide-react';
 import { refineMeetingNote } from '../services/geminiService';
+import ActionModal from './ActionModal';
 
 // --- Signature Canvas Component ---
 const SignatureCanvas: React.FC<{ onSave: (data: string) => void }> = ({ onSave }) => {
@@ -119,6 +120,10 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
   const [selectedDueDays, setSelectedDueDays] = useState<number>(2);
   const [selectedArea, setSelectedArea] = useState<string>('Zone Production');
   const [tempPhoto, setTempPhoto] = useState<string | null>(null);
+  
+  // Modal state for action creation
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [editingAction, setEditingAction] = useState<ActionItem | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [signature, setSignature] = useState<string>('');
 
@@ -235,32 +240,45 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
   };
 
   const handleAddAction = () => {
-    if (currentSectionIndex >= currentMeeting.notes.length) return;
-    const currentSection = sections[currentSectionIndex] as MeetingSection;
-    const dept = getDepartmentForSection(currentSection);
+    // Open modal for detailed action creation
+    setEditingAction(null);
+    setIsActionModalOpen(true);
+  };
 
-    const action: ActionItem = {
-      id: `new-${Date.now()}`,
-      description: noteInput || `Action suite à point ${currentSection}`,
-      status: ActionStatus.OPEN,
-      assigneeId: selectedAssignee || teamMembers[0]?.id || USERS[0].id,
-      dueDate: new Date(Date.now() + 86400000 * selectedDueDays).toISOString(),
-      priority: 'MEDIUM',
-      createdAt: new Date().toISOString(),
+  const handleSaveActionFromModal = (action: ActionItem) => {
+    // Add meeting reference
+    const actionWithMeeting = {
+      ...action,
       meetingId: meeting.id,
-      area: selectedArea,
-      department: departments.includes(dept) ? dept : departments[0],
-      proofImage: tempPhoto || undefined
+      proofImage: tempPhoto || action.proofImage
     };
-    setNewActions([...newActions, action]);
-    // Also mark issue in notes
-    const updatedNotes = [...currentMeeting.notes];
-    updatedNotes[currentSectionIndex].hasIssue = true;
-    setCurrentMeeting({ ...currentMeeting, notes: updatedNotes });
     
-    // Clear input
-    setNoteInput('');
+    // Check if editing existing action
+    const existingIndex = newActions.findIndex(a => a.id === action.id);
+    if (existingIndex >= 0) {
+      const updatedActions = [...newActions];
+      updatedActions[existingIndex] = actionWithMeeting;
+      setNewActions(updatedActions);
+    } else {
+      setNewActions([...newActions, actionWithMeeting]);
+    }
+    
+    // Mark issue in notes if action was created from current section
+    if (currentSectionIndex < currentMeeting.notes.length) {
+      const updatedNotes = [...currentMeeting.notes];
+      updatedNotes[currentSectionIndex].hasIssue = true;
+      setCurrentMeeting({ ...currentMeeting, notes: updatedNotes });
+    }
+    
+    // Clear temp photo after adding action
     setTempPhoto(null);
+    setNoteInput('');
+    setIsActionModalOpen(false);
+  };
+
+  const handleEditActionFromModal = (action: ActionItem) => {
+    setEditingAction(action);
+    setIsActionModalOpen(true);
   };
 
   const handleRemoveAction = (actionId: string) => {
@@ -329,7 +347,21 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
                 {newActions.map((action, i) => (
                     <div key={action.id} className="text-xs bg-slate-800 p-2 rounded flex items-center gap-2">
                         <AlertTriangle size={12} className="text-orange-400 flex-shrink-0" />
-                        <span className="truncate">{action.description}</span>
+                        <span className="truncate flex-1">{action.description}</span>
+                        <button 
+                          onClick={() => handleEditActionFromModal(action)}
+                          className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white"
+                          title="Éditer"
+                        >
+                          <Edit size={12} />
+                        </button>
+                        <button 
+                          onClick={() => handleRemoveAction(action.id)}
+                          className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-red-400"
+                          title="Supprimer"
+                        >
+                          <X size={12} />
+                        </button>
                     </div>
                 ))}
                 {newActions.length === 0 && <div className="text-slate-600 text-xs italic">Aucune action créée</div>}
@@ -566,6 +598,19 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
              )}
          </div>
       </div>
+      
+      {/* Action Modal for creating/editing actions during meeting */}
+      <ActionModal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
+        onSave={handleSaveActionFromModal}
+        onDelete={editingAction ? (id) => handleRemoveAction(id) : undefined}
+        action={editingAction}
+        users={teamMembers.length > 0 ? teamMembers : USERS}
+        defaultAssigneeId={selectedAssignee || teamMembers[0]?.id || USERS[0]?.id}
+        defaultMeetingId={meeting.id}
+        mode={editingAction ? 'edit' : 'create'}
+      />
     </div>
   );
 };

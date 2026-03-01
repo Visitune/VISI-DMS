@@ -1,4 +1,4 @@
-import { ActionItem, ActionStatus, DataPackage, Meeting, MeetingSection, MeetingType, Team, User, UserRole } from './types';
+import { ActionItem, ActionStatus, DataPackage, Meeting, MeetingSection, MeetingType, Team, User, UserRole, ACTION_CATEGORIES, ACTION_TAGS } from './types';
 
 export const USERS: User[] = [
   { id: 'u1', name: 'Thomas Dupont', role: UserRole.TEAM_LEAD, avatar: 'https://i.pravatar.cc/150?u=u1' },
@@ -9,8 +9,8 @@ export const USERS: User[] = [
 ];
 
 export const TEAMS: Team[] = [
-  { id: 't1', name: 'Équipe Matin - Prod A', members: [USERS[0], USERS[2], USERS[4]] },
-  { id: 't2', name: 'Équipe Après-midi - Packaging', members: [USERS[0], USERS[2]] },
+  { id: 't1', name: 'Équipe Matin - Prod A', members: [USERS[0], USERS[2], USERS[4]], leaderId: 'u1' },
+  { id: 't2', name: 'Équipe Après-midi - Packaging', members: [USERS[0], USERS[2]], leaderId: 'u1' },
 ];
 
 export const DEPARTMENTS = [
@@ -22,6 +22,31 @@ export const DEPARTMENTS = [
   "RH"
 ];
 
+// Catégories d'actions
+export const CATEGORIES = [...ACTION_CATEGORIES];
+
+// Tags prédéfinis
+export const TAGS = [...ACTION_TAGS];
+
+// Zones prédéfinies
+export const ZONES = [
+  "Zone A1",
+  "Zone A2",
+  "Zone B1",
+  "Zone B2",
+  "Zone C1",
+  "Zone C2",
+  "Bureau Chef",
+  "Bureau HSE",
+  "Atelier Maintenance",
+  "Chaine Production",
+  "Zone Expédition",
+  "Zone Réception",
+  "Parking",
+  "Cantine",
+  "Salle de pause"
+];
+
 export const MOCK_ACTIONS: ActionItem[] = [
   {
     id: 'a1',
@@ -31,8 +56,14 @@ export const MOCK_ACTIONS: ActionItem[] = [
     dueDate: new Date(Date.now() + 86400000).toISOString(),
     priority: 'HIGH',
     createdAt: new Date(Date.now() - 100000).toISOString(),
+    updatedAt: new Date(Date.now() - 100000).toISOString(),
     area: 'Zone A1',
     department: 'Maintenance',
+    category: 'Maintenance',
+    location: 'Machine 3 - Chaîne principale',
+    tags: ['Urgente', 'Sécurité'],
+    attachments: [],
+    comments: [],
     proofImage: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=600'
   },
   {
@@ -43,9 +74,15 @@ export const MOCK_ACTIONS: ActionItem[] = [
     dueDate: new Date(Date.now() + 172800000).toISOString(),
     priority: 'MEDIUM',
     createdAt: new Date(Date.now() - 200000000).toISOString(),
+    updatedAt: new Date(Date.now() - 50000000).toISOString(),
     area: 'Zone B2',
     department: 'Logistique',
-    proofImage: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&q=80&w=600'
+    category: 'Organisation',
+    location: 'Allée principale zone B',
+    tags: ['Récurrente', '5S'],
+    attachments: [],
+    comments: [],
+    proofImage: 'https://images.unsplash.com/photo-1530124566582-a6a2a5aee158?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 'a3',
@@ -55,8 +92,18 @@ export const MOCK_ACTIONS: ActionItem[] = [
     dueDate: new Date(Date.now() - 86400000).toISOString(),
     priority: 'HIGH',
     createdAt: new Date(Date.now() - 500000000).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
     area: 'Logistique',
     department: 'Maintenance',
+    category: 'Maintenance',
+    location: 'Zone chargement',
+    tags: ['Urgente', 'Environnement'],
+    attachments: [],
+    comments: [
+      { id: 'c1', userId: 'u2', text: 'Action vérifiée, le chariot a été réparé', createdAt: new Date(Date.now() - 86400000).toISOString() }
+    ],
+    completedAt: new Date(Date.now() - 86400000).toISOString(),
+    verifiedBy: 'u2',
     proofImage: 'https://images.unsplash.com/photo-1517166357932-d20495cb655d?auto=format&fit=crop&q=80&w=600'
   },
   {
@@ -67,8 +114,14 @@ export const MOCK_ACTIONS: ActionItem[] = [
     dueDate: new Date(Date.now() + 300000000).toISOString(),
     priority: 'LOW',
     createdAt: new Date(Date.now() - 10000).toISOString(),
+    updatedAt: new Date(Date.now() - 10000).toISOString(),
     area: 'Bureau Chef',
     department: 'HSE / Sécurité',
+    category: 'Organisation',
+    location: 'Entrée bâtiment',
+    tags: ['Amélioration', '5S'],
+    attachments: [],
+    comments: [],
     proofImage: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=600'
   }
 ];
@@ -127,7 +180,8 @@ export const INITIAL_MEETING_STATE: Meeting = {
     section,
     text: '',
     hasIssue: false
-  }))
+  })),
+  actionIds: []
 };
 
 export const DEFAULT_SETTINGS: import('./types').AppSettings = {
@@ -135,5 +189,30 @@ export const DEFAULT_SETTINGS: import('./types').AppSettings = {
   enableSectionTimer: true,
   enableAutoSave: true,
   enableKanbanDragDrop: false,
-  onboardingSeen: false
+  onboardingSeen: false,
+  defaultPriority: 'MEDIUM',
+  defaultDepartment: 'Production'
+};
+
+// Helper function to create a new action
+export const createNewAction = (partial: Partial<ActionItem> = {}): ActionItem => {
+  const now = new Date().toISOString();
+  return {
+    id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    description: '',
+    status: ActionStatus.OPEN,
+    assigneeId: '',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week from now
+    priority: 'MEDIUM',
+    createdAt: now,
+    updatedAt: now,
+    area: '',
+    department: 'Production',
+    category: undefined,
+    location: undefined,
+    tags: [],
+    attachments: [],
+    comments: [],
+    ...partial
+  };
 };

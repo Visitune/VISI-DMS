@@ -31,8 +31,29 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  email?: string;
+  phone?: string;
 }
 
+// Pièce jointe (image, document, PDF)
+export interface Attachment {
+  id: string;
+  name: string;
+  type: 'image' | 'document' | 'pdf';
+  url: string;  // base64 ou URL
+  uploadedAt: string;
+  size: number;  // taille en bytes
+}
+
+// Commentaire sur une action
+export interface Comment {
+  id: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+}
+
+// Action item améliorée avec support complet
 export interface ActionItem {
   id: string;
   description: string;
@@ -41,10 +62,18 @@ export interface ActionItem {
   dueDate: string; // ISO Date
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   createdAt: string;
+  updatedAt: string;
   meetingId?: string;
   area: string; // e.g., "Zone B2"
-  department: string; // New field for classification (Maintenance, HSE, Prod...)
-  proofImage?: string;
+  department: string; // Classification (Maintenance, HSE, Prod...)
+  category?: string;  // Type d'action (Sécurité, Qualité, Maintenance...)
+  location?: string;  // Localisation détaillée
+  tags?: string[];     // Tags pour filtrage
+  attachments: Attachment[];  // Multiple fichiers/photos
+  comments: Comment[];  // Commentaires
+  proofImage?: string;  // Image de preuve (legacy - prefer attachments)
+  completedAt?: string; // Date de completion
+  verifiedBy?: string;  // Qui a vérifié
 }
 
 export interface Meeting {
@@ -62,12 +91,15 @@ export interface Meeting {
     hasIssue: boolean;
   }[];
   signature?: string; // Base64 signature
+  actionIds?: string[]; // IDs des actions créées pendant la réunion
 }
 
 export interface Team {
   id: string;
   name: string;
   members: User[];
+  leaderId?: string;  // ID du responsable de l'équipe
+  createdAt?: string;
 }
 
 export interface DataPackage {
@@ -87,6 +119,8 @@ export interface AppSettings {
   enableAutoSave: boolean;
   enableKanbanDragDrop: boolean; // Future proofing
   onboardingSeen: boolean;
+  defaultPriority: 'HIGH' | 'MEDIUM' | 'LOW';
+  defaultDepartment: string;
 }
 
 export interface DataExport {
@@ -101,3 +135,30 @@ export interface DataExport {
   teams: Team[];
   emailConfig: string;
 }
+
+// Catégories d'actions disponibles
+export const ACTION_CATEGORIES = [
+  'Sécurité',
+  'Qualité',
+  'Maintenance',
+  'Production',
+  'Environnement',
+  'Logistique',
+  'Organisation',
+  'Formation',
+  'Autre'
+] as const;
+
+// Tags prédéfinis pour les actions
+export const ACTION_TAGS = [
+  'Urgente',
+  'Planifiée',
+  'Récurrente',
+  'Amélioration',
+  'Conformité',
+  'Audit',
+  'Incendie',
+  'EPI',
+  '5S',
+  'Ergonomie'
+] as const;

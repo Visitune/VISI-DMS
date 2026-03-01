@@ -199,8 +199,11 @@ const App: React.FC = () => {
           <ActionTracker 
             actions={actions} 
             departments={departments}
+            teams={teams}
             onUpdateStatus={handleActionStatusUpdate} 
             onUpdateAction={handleActionUpdate} 
+            onCreateAction={(action) => setActions(prev => [...prev, action])}
+            onDeleteAction={(id) => setActions(prev => prev.filter(a => a.id !== id))}
           />
         );
       case View.PACKAGES:
