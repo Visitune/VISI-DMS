@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Save, Plus, Trash2, Users, Shield, Factory, Sliders, Mail, Briefcase, Mic, Timer, Database, Download, Upload, ToggleLeft, ToggleRight, Info } from 'lucide-react';
 import { Team, User, UserRole, AppSettings } from '../types';
+import { saveApiKey, hasApiKey } from '../services/geminiService';
 
 interface SettingsPanelProps {
   themes: string[];
@@ -27,11 +28,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onExportData, onImportData,
   currentUser, setCurrentUser
 }) => {
-  const [activeTab, setActiveTab] = useState<'THEMES' | 'TEAMS' | 'DEPTS' | 'WORKFLOW' | 'FEATURES' | 'DATA' | 'PROFILE'>('THEMES');
+  const [activeTab, setActiveTab] = useState<'THEMES' | 'TEAMS' | 'DEPTS' | 'WORKFLOW' | 'FEATURES' | 'DATA' | 'PROFILE' | 'API'>('THEMES');
   const [newTheme, setNewTheme] = useState('');
   const [newDept, setNewDept] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiKeySaved, setApiKeySaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setApiKeySaved(hasApiKey());
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (apiKey.trim()) {
+      saveApiKey(apiKey.trim());
+      setApiKeySaved(true);
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,6 +158,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             >
               <Shield size={20} />
               <span className="font-bold">Mon Profil</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('API')}
+              className={`text-left p-4 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'API' ? 'bg-white shadow-md border-l-4 border-blue-600 text-blue-700' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}
+            >
+              <Shield size={20} />
+              <span className="font-bold">Clé API Gemini</span>
             </button>
         </div>
 
@@ -449,6 +470,55 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <p>
                        Ces informations seront utilisées pour identifier l'auteur des actions et des rapports générés. Les données sont stockées localement sur cet appareil.
                     </p>
+                 </div>
+              </div>
+            )}
+
+            {/* TAB: API */}
+            {activeTab === 'API' && (
+              <div className="space-y-6">
+                 <h2 className="text-xl font-bold text-gray-800">Clé API Gemini</h2>
+                 <p className="text-sm text-gray-500">
+                   Entrez votre clé API Google AI pour activer les fonctionnalités d'intelligence artificielle (analyse de risque, reformulation de notes). Sans clé, l'application fonctionne normalement mais sans les fonctionnalités IA.
+                 </p>
+                 
+                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                   <p className="text-sm text-blue-700 mb-2"><strong>Comment obtenir une clé API:</strong></p>
+                   <ol className="text-sm text-blue-600 list-decimal list-inside space-y-1">
+                     <li>Allez sur <a href="https://aistudio.google.com/app/apikey" target="_blank" className="underline">Google AI Studio</a></li>
+                     <li>Connectez-vous avec votre compte Google</li>
+                     <li>Cliquez sur "Create API Key"</li>
+                     <li>Copiez la clé générée et collez-la ici</li>
+                   </ol>
+                 </div>
+
+                 <div className="space-y-2">
+                   <label className="block text-sm font-medium text-gray-700">Clé API</label>
+                   <input 
+                     type="password" 
+                     value={apiKey}
+                     onChange={(e) => setApiKey(e.target.value)}
+                     placeholder="AIza..."
+                     className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                   />
+                 </div>
+
+                 <button 
+                   onClick={handleSaveApiKey}
+                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                 >
+                   <Save size={20} />
+                   Sauvegarder la clé
+                 </button>
+
+                 {apiKeySaved && (
+                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+                     <span className="text-green-600">✓ Clé API enregistrée avec succès!</span>
+                   </div>
+                 )}
+
+                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                   <p className="text-sm text-yellow-700"><strong>Note:</strong> La clé est stockée localement sur votre navigateur.</p>
                  </div>
               </div>
             )}
