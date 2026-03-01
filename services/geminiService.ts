@@ -1,7 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Safely access process.env. In some browser environments, process is not defined.
-const apiKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || '';
+// Access API key from Vite's import.meta.env or process.env
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 
+                (typeof process !== 'undefined' && process?.env?.GEMINI_API_KEY) || 
+                '';
 const ai = new GoogleGenAI({ apiKey });
 
 export const refineMeetingNote = async (rawText: string, section: string): Promise<string> => {
