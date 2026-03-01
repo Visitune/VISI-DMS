@@ -113,6 +113,11 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
   // Note inputs
   const [noteInput, setNoteInput] = useState('');
   const [isRefining, setIsRefining] = useState(false);
+  
+  // Action creation inputs
+  const [selectedAssignee, setSelectedAssignee] = useState<string>(teamMembers[0]?.id || '');
+  const [selectedDueDays, setSelectedDueDays] = useState<number>(2);
+  const [selectedArea, setSelectedArea] = useState<string>('Zone Production');
   const [tempPhoto, setTempPhoto] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [signature, setSignature] = useState<string>('');
@@ -179,8 +184,25 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
   };
 
   const handleTakePhoto = () => {
-    // Simulate taking a photo
-    setTempPhoto('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=600');
+    // Create hidden file input for real photo upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera on mobile
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Convert to base64 for local storage
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setTempPhoto(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    
+    input.click();
   };
 
   const handleSaveNote = async () => {
@@ -221,13 +243,13 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
       id: `new-${Date.now()}`,
       description: noteInput || `Action suite à point ${currentSection}`,
       status: ActionStatus.OPEN,
-      assigneeId: USERS[0].id, // Default to lead
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString(), // J+2
+      assigneeId: selectedAssignee || teamMembers[0]?.id || USERS[0].id,
+      dueDate: new Date(Date.now() + 86400000 * selectedDueDays).toISOString(),
       priority: 'MEDIUM',
       createdAt: new Date().toISOString(),
       meetingId: meeting.id,
-      area: 'Zone Production',
-      department: departments.includes(dept) ? dept : departments[0], // Ensure valid dept
+      area: selectedArea,
+      department: departments.includes(dept) ? dept : departments[0],
       proofImage: tempPhoto || undefined
     };
     setNewActions([...newActions, action]);
@@ -447,6 +469,45 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
                               </button>
                               
                               <div className="flex-1"></div>
+
+                              {/* Action Settings */}
+                              <div className="flex items-center gap-2 mr-2">
+                                <select 
+                                  value={selectedAssignee}
+                                  onChange={(e) => setSelectedAssignee(e.target.value)}
+                                  className="p-2 text-sm border border-gray-200 rounded-lg"
+                                  title="Responsable"
+                                >
+                                  {teamMembers.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                  ))}
+                                  {teamMembers.length === 0 && USERS.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                  ))}
+                                </select>
+                                <select 
+                                  value={selectedDueDays}
+                                  onChange={(e) => setSelectedDueDays(Number(e.target.value))}
+                                  className="p-2 text-sm border border-gray-200 rounded-lg"
+                                  title="Échéance"
+                                >
+                                  <option value={1}>J+1</option>
+                                  <option value={2}>J+2</option>
+                                  <option value={3}>J+3</option>
+                                  <option value={7}>J+7</option>
+                                </select>
+                                <select 
+                                  value={selectedArea}
+                                  onChange={(e) => setSelectedArea(e.target.value)}
+                                  className="p-2 text-sm border border-gray-200 rounded-lg"
+                                  title="Zone"
+                                >
+                                  <option value="Zone Production">Zone Production</option>
+                                  <option value="Zone Emballage">Zone Emballage</option>
+                                  <option value="Zone Expédition">Zone Expédition</option>
+                                  <option value="Bureau">Bureau</option>
+                                </select>
+                              </div>
 
                               <button 
                                 onClick={handleSaveNote}
