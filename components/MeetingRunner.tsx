@@ -263,6 +263,10 @@ const MeetingRunner: React.FC<MeetingRunnerProps> = ({ meeting, teamMembers, the
     setTempPhoto(null);
   };
 
+  const handleRemoveAction = (actionId: string) => {
+    setNewActions(newActions.filter(a => a.id !== actionId));
+  };
+
   const finishMeeting = () => {
     onComplete({ ...currentMeeting, durationSeconds: elapsedSeconds, completed: true, signature }, newActions);
   };
