@@ -211,6 +211,7 @@ const App: React.FC = () => {
             themes={themes} 
             setThemes={setThemes} 
             teams={teams}
+            setTeams={setTeams}
             departments={departments}
             setDepartments={setDepartments}
             emailConfig={emailConfig}

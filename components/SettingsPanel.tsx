@@ -7,6 +7,7 @@ interface SettingsPanelProps {
   themes: string[];
   setThemes: (themes: string[]) => void;
   teams: Team[];
+  setTeams: (teams: Team[]) => void;
   departments: string[];
   setDepartments: (depts: string[]) => void;
   emailConfig: string;
@@ -21,7 +22,7 @@ interface SettingsPanelProps {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ 
   themes, setThemes, 
-  teams, 
+  teams, setTeams,
   departments, setDepartments,
   emailConfig, setEmailConfig,
   settings, setSettings,
@@ -31,6 +32,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'THEMES' | 'TEAMS' | 'DEPTS' | 'WORKFLOW' | 'FEATURES' | 'DATA' | 'PROFILE' | 'API'>('THEMES');
   const [newTheme, setNewTheme] = useState('');
   const [newDept, setNewDept] = useState('');
+  const [newTeamName, setNewTeamName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +82,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const handleRemoveDept = (index: number) => {
     const updated = departments.filter((_, i) => i !== index);
     setDepartments(updated);
+  };
+
+  const handleAddTeam = () => {
+    if (newTeamName.trim()) {
+      const newTeam: Team = {
+        id: `team-${Date.now()}`,
+        name: newTeamName.trim(),
+        members: []
+      };
+      setTeams([...teams, newTeam]);
+      setNewTeamName('');
+    }
+  };
+
+  const handleRemoveTeam = (teamId: string) => {
+    setTeams(teams.filter(t => t.id !== teamId));
   };
 
   const toggleSetting = (key: keyof AppSettings) => {
@@ -247,23 +265,42 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                  <h2 className="text-xl font-bold text-gray-800">Gestion des Équipes</h2>
                  <p className="text-sm text-gray-500">Configuration des équipes postées et zones de responsabilité.</p>
                  
+                 {/* Add new team */}
+                 <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newTeamName}
+                      onChange={(e) => setNewTeamName(e.target.value)}
+                      placeholder="Nom de la nouvelle équipe"
+                      className="flex-1 p-3 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                    />
+                    <button 
+                      onClick={handleAddTeam}
+                      className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700"
+                    >
+                      <Plus />
+                    </button>
+                 </div>
+                 
                  <div className="space-y-4">
                     {teams.map(team => (
-                      <div key={team.id} className="p-4 border border-gray-200 rounded-xl">
-                         <div className="flex justify-between items-center mb-2">
+                      <div key={team.id} className="p-4 border border-gray-200 rounded-xl flex justify-between items-center">
+                         <div>
                             <h3 className="font-bold text-lg">{team.name}</h3>
                             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{team.members.length} membres</span>
                          </div>
-                         <div className="flex -space-x-2">
-                            {team.members.map(m => (
-                              <img key={m.id} src={m.avatar} className="w-8 h-8 rounded-full border-2 border-white" title={m.name} />
-                            ))}
-                         </div>
+                         <button 
+                           onClick={() => handleRemoveTeam(team.id)}
+                           className="text-gray-400 hover:text-red-500 p-2"
+                           title="Supprimer l'équipe"
+                         >
+                           <Trash2 size={20} />
+                         </button>
                       </div>
                     ))}
-                    <button className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-400 rounded-xl font-bold hover:bg-gray-50 hover:text-gray-600 transition-colors">
-                      + Ajouter une nouvelle équipe
-                    </button>
+                    {teams.length === 0 && (
+                      <p className="text-gray-400 text-center py-4">Aucune équipe. Ajoutez votre première équipe ci-dessus.</p>
+                    )}
                  </div>
               </div>
             )}
